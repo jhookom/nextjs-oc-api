@@ -22,7 +22,7 @@ export const webhook = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => voi
         if (!!sent) console.error(`Header 'X-oc-hash' not sent`);
 
         // get body hash
-        const hash = crypto.createHash('sha256').update(req.body).digest('base64');
+        const hash = crypto.createHmac('sha256', hashkey || 'not_secure!!').update(req.body).digest('base64');
         if (hash != sent) console.error(`Sent hash ${sent} is not equal to message hash ${hash}`);
 
         // add future error handling
