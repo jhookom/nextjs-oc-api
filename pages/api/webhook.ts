@@ -2,9 +2,9 @@ import { OrderCloudApiRequest, OrderCloudApiResponse, webhook } from '../../lib/
 
 const handler = (req: OrderCloudApiRequest, res: OrderCloudApiResponse) => {
     const body = req.body || {};
-    
+
     if (!body.xp) body.xp = {};
-    body.xp['nextjs-webhook-fired'] = true;
+    body.xp['nextjs-webhook-fired'] = 'yipeee';
 
     res.proceed(true, body);
 }
