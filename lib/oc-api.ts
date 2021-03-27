@@ -1,7 +1,8 @@
 import { NextApiRequest, NextApiResponse, NextApiHandler } from 'next'
 var crypto = require('crypto')
 
-const environment_hash_key = 'OC_WEBHOOK_KEY';
+const environment_webhook_key = 'OC_WEBHOOK_KEY';
+const webhook_header = 'X-oc-hash';
 
 export declare type OrderCloudApiRequest = NextApiRequest & {
 }
@@ -14,14 +15,14 @@ export const webhook = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => voi
     return function(req: NextApiRequest, res: NextApiResponse) {
 
         // get the hashkey
-        const hashkey = process.env.environment_hash_key;
-        if (!!hashkey) console.error(`Environment '${environment_hash_key}' not set`);
+        const hashkey = process.env[environment_webhook_key];
+        if (!!hashkey) console.error(`Environment '${environment_webhook_key}' not set`);
 
         // webhook validation
-        const sent = Array.isArray(req.headers['X-oc-hash']) ? req.headers['X-oc-hash'][0] : req.headers['X-oc-hash'];
-        if (!!sent) console.error(`Header 'X-oc-hash' not sent`);
+        const sent = Array.isArray(req.headers[webhook_header]) ? req.headers[webhook_header][0] : req.headers[webhook_header];
+        if (!!sent) console.error(`Header ${webhook_header} not sent`);
 
-        // get body hash
+        // get body hash with placeholder default until exception handling added
         const hash = crypto.createHmac('sha256', hashkey || 'not_secure!!').update(req.body).digest('base64');
         if (hash != sent) console.error(`Sent hash ${sent} is not equal to message hash ${hash}`);
 
