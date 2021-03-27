@@ -19,11 +19,11 @@ export const webhook = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => voi
 
         // get the hashkey
         const hashkey = process.env[environment_webhook_key];
-        if (typeof hashkey === 'undefined') console.error(`Environment '${environment_webhook_key}' not set`);
+        if (!!hashkey == false) console.error(`Environment '${environment_webhook_key}' not set`);
 
         // webhook validation
         const sent = Array.isArray(req.headers[webhook_header]) ? req.headers[webhook_header][0] : req.headers[webhook_header];
-        if (typeof sent === 'undefined') console.error(`Header '${webhook_header}' not sent in request`);
+        if (!!sent == false) console.error(`Header '${webhook_header}' not sent in request`);
 
         // get body hash based on hashkey
         const hash = crypto.createHmac('sha256', hashkey).update(req.body).digest('base64');
