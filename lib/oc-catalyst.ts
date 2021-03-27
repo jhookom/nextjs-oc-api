@@ -1,5 +1,5 @@
-import { NextApiRequest, NextApiResponse, NextApiHandler } from 'next'
-var crypto = require('crypto')
+import { NextApiRequest, NextApiResponse } from 'next'
+import crypto from 'crypto'
 
 const environment_webhook_key = 'OC_WEBHOOK_KEY';
 const webhook_header = 'X-oc-hash';
@@ -15,6 +15,9 @@ export const webhook = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => voi
     return function(req: NextApiRequest, res: NextApiResponse) {
 
         // log body
+        console.log('Header:');
+        console.log(JSON.stringify(req.headers, null, 1));
+        console.log('Body:');
         console.log(JSON.stringify(req.body, null, 1));
 
         // get the hashkey
@@ -26,7 +29,7 @@ export const webhook = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => voi
         if (!!sent == false) console.error(`Header '${webhook_header}' not sent in request`);
 
         // get body hash based on hashkey
-        const hash = crypto.createHmac('sha256', hashkey).update(req.body).digest('base64');
+        const hash = crypto.createHmac('sha256', hashkey).update(JSON.stringify(req.body)).digest('base64');
         if (hash != sent) console.error(`Sent hash ${sent} is not equal to message hash ${hash}`);
 
         // add future error handling
