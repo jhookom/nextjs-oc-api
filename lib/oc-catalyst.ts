@@ -5,6 +5,12 @@ const environment_webhook_key = 'OC_WEBHOOK_KEY';
 const webhook_header = 'x-oc-hash';
 
 export declare type OrderCloudApiRequest = NextApiRequest & {
+    route : {
+        path: string,
+        params: any,
+    },
+    payload: any,
+    configData: any,
 }
 
 export declare type OrderCloudApiResponse<T = any> = NextApiResponse & {
@@ -20,23 +26,26 @@ export const webhook = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => voi
         console.log('Body:');
         console.log(JSON.stringify(req.body, null, 1));
 
-        // get the hashkey
+        // validate webhook if environment variable set
         const hashkey = process.env[environment_webhook_key];
-        if (!!hashkey == false) console.error(`Environment '${environment_webhook_key}' not set`);
+        if (!!hashkey) {
+            const sent = Array.isArray(req.headers[webhook_header]) ? req.headers[webhook_header][0] : req.headers[webhook_header];
+            if (!!sent) {
+                // not ideal to re-stringify the json body vs using the raw (https://github.com/vercel/next.js/discussions/13405)
+                const hash = crypto.createHmac('sha256', hashkey).update(JSON.stringify(req.body)).digest('base64');
+                if (hash != sent) return res.status(403).send(`Header '${webhook_header} is Not Valid`);
+            } else {
+                return res.status(403).send(`Header '${webhook_header}' Required`);
+            }
+        }
 
-        // webhook validation
-        const sent = Array.isArray(req.headers[webhook_header]) ? req.headers[webhook_header][0] : req.headers[webhook_header];
-        if (!!sent == false) console.error(`Header '${webhook_header}' not sent in request`);
-
-        // get body hash based on hashkey
-        const hash = crypto.createHmac('sha256', hashkey).update(JSON.stringify(req.body)).digest('base64');
-        if (hash != sent) console.error(`Sent hash ${sent} is not equal to message hash ${hash}`);
-
-        // add future error handling
-
+        // create request
+        const ocReq = req as OrderCloudApiRequest;
+        ocReq.route = { path: req.body?.Route, params: req.body?.RouteParams };
+        ocReq.payload = req.body?.Request?.Body;
+        ocReq.configData = req.body?.ConfigData;
 
         // create response
-        const ocReq = req as OrderCloudApiRequest;
         const ocRes = res as OrderCloudApiResponse;
         ocRes.proceed = (p, b?) => {
             ocRes.send({ proceed: p, body: b });

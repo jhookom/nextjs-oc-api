@@ -2,13 +2,13 @@ import { OrderCloudApiRequest, OrderCloudApiResponse, webhook } from '../../lib/
 
 // generic pre-webhook
 const handler = (req: OrderCloudApiRequest, res: OrderCloudApiResponse) => {
-    const body = req.body || {};
+    const payload = req.payload || {};
 
     // write some stuff to the body
-    if (!body.xp) body.xp = {};
-    body.xp['nextjs-webhook-fired'] = 'yipeee';
+    if (!payload.xp) payload.xp = {};
+    payload.xp['nextjs-webhook-fired'] = 'yipeee';
 
-    res.proceed(true, body);
+    res.proceed(true, payload);
 }
 
 export default webhook(handler);
