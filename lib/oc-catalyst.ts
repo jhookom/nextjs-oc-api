@@ -19,6 +19,7 @@ export const webhook = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => voi
 
         // get the hashkey
         const hashkey = process.env[environment_webhook_key];
+        console.log(`Env ${hashkey} ${process.env.OC_WEBHOOK_KEY}`);
         if (!!hashkey) console.error(`Environment '${environment_webhook_key}' not set`);
 
         // webhook validation
