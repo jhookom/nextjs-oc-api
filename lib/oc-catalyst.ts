@@ -14,6 +14,9 @@ export declare type OrderCloudApiResponse<T = any> = NextApiResponse & {
 export const webhook = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => void | Promise<void>) => {
     return function(req: NextApiRequest, res: NextApiResponse) {
 
+        // log body
+        console.log(JSON.stringify(req.body, null, 1));
+
         // get the hashkey
         const hashkey = process.env[environment_webhook_key];
         if (!!hashkey) console.error(`Environment '${environment_webhook_key}' not set`);
@@ -22,8 +25,8 @@ export const webhook = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => voi
         const sent = Array.isArray(req.headers[webhook_header]) ? req.headers[webhook_header][0] : req.headers[webhook_header];
         if (!!sent) console.error(`Header ${webhook_header} not sent`);
 
-        // get body hash with placeholder default until exception handling added
-        const hash = crypto.createHmac('sha256', hashkey || 'not_secure!!').update(req.body).digest('base64');
+        // get body hash based on hashkey
+        const hash = crypto.createHmac('sha256', hashkey).update(req.body).digest('base64');
         if (hash != sent) console.error(`Sent hash ${sent} is not equal to message hash ${hash}`);
 
         // add future error handling
