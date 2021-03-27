@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import crypto from 'crypto'
 
 const environment_webhook_key = 'OC_WEBHOOK_KEY';
-const webhook_header = 'X-oc-hash';
+const webhook_header = 'x-oc-hash';
 
 export declare type OrderCloudApiRequest = NextApiRequest & {
 }
