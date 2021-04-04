@@ -48,7 +48,7 @@ export const webhook = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => voi
         // create response
         const ocRes = res as OrderCloudApiResponse;
         ocRes.proceed = (p, b?) => {
-            ocRes.send({ proceed: p, body: b });
+            ocRes.send({ proceed: p, Body: b });
         }
         
         return fn(ocReq, ocRes);
