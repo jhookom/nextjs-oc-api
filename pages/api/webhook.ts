@@ -8,9 +8,7 @@ const handler = (req: OrderCloudApiRequest, res: OrderCloudApiResponse) => {
     if (!payload.xp) payload.xp = {};
     payload.xp['nextjs-webhook-fired'] = 'yipeee';
 
-    res.send(payload);
-
-    // res.proceed(false, { message: 'this is an error', success: 'false' });
+    res.proceed(true, payload);
 }
 
 export default webhook(handler);
