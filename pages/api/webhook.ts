@@ -4,6 +4,9 @@ import { OrderCloudApiRequest, OrderCloudApiResponse, webhook } from '../../lib/
 const handler = (req: OrderCloudApiRequest, res: OrderCloudApiResponse) => {
     const payload = req.payload || {};
 
+    // override the name
+    payload.Name = payload.Name + ' Webhook Added';
+
     // write some stuff to the body
     if (!payload.xp) payload.xp = {};
     payload.xp['nextjs-webhook-fired'] = 'yipeee';
