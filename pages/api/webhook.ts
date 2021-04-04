@@ -11,7 +11,7 @@ const handler = (req: OrderCloudApiRequest, res: OrderCloudApiResponse) => {
     console.log('Response:');
     console.log(payload);
 
-    res.proceed(true, payload);
+    res.json(payload);
 }
 
 export default webhook(handler);
