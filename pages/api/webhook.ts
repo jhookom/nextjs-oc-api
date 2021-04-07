@@ -1,20 +1,14 @@
-import { OrderCloudApiRequest, OrderCloudApiResponse, webhook } from '../../lib/oc-catalyst'
+import { webhook, WebhookApiRequest, WebhookApiResponse } from '../../lib/oc-catalyst'
+import { Buyer } from 'ordercloud-javascript-sdk'
 
 // generic pre-webhook
-const handler = (req: OrderCloudApiRequest, res: OrderCloudApiResponse) => {
+const handler = (req: WebhookApiRequest<Partial<Buyer>>, res: WebhookApiResponse) => {
     const payload = req.payload || {};
 
-    // override the name
-    payload.Name = payload.Name + ' Webhook Added';
+    console.log('Webhook:');
+    console.log(req.webhook);
 
-    // write some stuff to the body
-    if (!payload.xp) payload.xp = {};
-    payload.xp['nextjs-webhook-fired'] = 'yipeee';
-
-    console.log('Response:');
-    console.log(payload);
-
-    res.proceed(true, payload)
+    res.proceed(true, req.webhook)
 }
 
 export default webhook(handler);
