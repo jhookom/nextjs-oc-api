@@ -17,13 +17,17 @@ const webhook_header = 'x-oc-hash';
 function _initClient() {
     const config = Configuration.Get();
     Configuration.Set({
-        baseApiUrl: process.env[environment_api_url] || 'https://sandboxapi.ordercloud.io',
+        baseApiUrl: _ocApiUrl(),
         apiVersion: process.env[environment_api_version] || config.apiVersion,
         clientID: config.clientID || process.env[environment_api_client],
     });
     console.log(`Initializing Client: ${JSON.stringify(Configuration.Get())}`);
 
 
+}
+
+function _ocApiUrl() : string {
+    return process.env[environment_api_url] || 'https://sandboxapi.ordercloud.io';
 }
 
 // helper functions
@@ -42,12 +46,12 @@ async function _parseJwt(token: string): Promise<DecodedToken> {
     const decoded = jwt.decode(token, {complete: true});
 
     // todo add caching
-    const cert_resp = await fetch(`${decoded.payload.aud}/oauth/certs/${decoded.header.kid}`);
+    const cert_resp = await fetch(`${_ocApiUrl()}/oauth/certs/${decoded.header.kid}`);
     const cert = await cert_resp.json();
     const pem = jwkToPem(cert);
 
     // will throw an exception if verification fails
-    await jwt.verify(token, pem, { algorithms: ['RS256'], audience: decoded.payload.aud, issuer: decoded.payload.iss });
+    await jwt.verify(token, pem, { algorithms: ['RS256'], audience: _ocApiUrl() });
     return decoded.payload;
 }
 
@@ -82,7 +86,7 @@ export const ordercloud = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => 
         try {
             token = await _parseJwt(bearer);
         } catch (e) {
-            console.error(e);
+            // console.error(e);
             return res.status(403).json(`Invalid Authorization Bearer`);
         }
 
