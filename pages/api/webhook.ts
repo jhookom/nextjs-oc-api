@@ -1,4 +1,4 @@
-import { webhook, WebhookApiRequest, WebhookApiResponse } from '../../lib/oc-catalyst'
+import { webhook, WebhookApiRequest, WebhookApiResponse } from '../../lib/oc-catalyst-next'
 import { Buyer } from 'ordercloud-javascript-sdk'
 
 // generic pre-webhook

@@ -1,6 +1,9 @@
-import { Configuration, DecodedToken, OrderCloudError } from 'ordercloud-javascript-sdk';
+import { Configuration, DecodedToken, OrderCloudError } from 'ordercloud-javascript-sdk'
 import { NextApiRequest, NextApiResponse } from 'next'
 import crypto from 'crypto'
+import jwt from 'jsonwebtoken'
+import jwkToPem from 'jwk-to-pem'
+
 
 const environment_webhook_key = 'OC_WEBHOOK_KEY';
 const environment_api_url = 'OC_API_URL';
@@ -19,6 +22,8 @@ function _initClient() {
         clientID: config.clientID || process.env[environment_api_client],
     });
     console.log(`Initializing Client: ${JSON.stringify(Configuration.Get())}`);
+
+
 }
 
 // helper functions
@@ -33,20 +38,17 @@ function _decodeBase64(str: string) {
 }
 
 // helper functions
-function _parseJwt(token: string): DecodedToken {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      _decodeBase64(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    throw new Error("Invalid token");
-  }
+async function _parseJwt(token: string): Promise<DecodedToken> {
+    const decoded = jwt.decode(token, {complete: true});
+
+    // todo add caching
+    const cert_resp = await fetch(`${decoded.payload.aud}/oauth/certs/${decoded.header.kid}`);
+    const cert = await cert_resp.json();
+    const pem = jwkToPem(cert);
+
+    // will throw an exception if verification fails
+    await jwt.verify(token, pem, { algorithms: ['RS256'], audience: decoded.payload.aud, issuer: decoded.payload.iss });
+    return decoded.payload;
 }
 
 export declare type OrderCloudApiRequest<T = any> = NextApiRequest & {
@@ -69,16 +71,16 @@ export const ordercloud = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => 
 
     _initClient();
 
-    return function(req: NextApiRequest, res: NextApiResponse) {
+    return async function(req: NextApiRequest, res: NextApiResponse) {
 
         // validate bearer
         if (!!!req.headers.authorization) return res.status(403).send(`Authorization Bearer Required`);
 
         // parse token
         const bearer = req.headers.authorization.split(/\s+/)[1];
-        let jwt : DecodedToken = null;
+        let token : DecodedToken = null;
         try {
-            jwt = _parseJwt(bearer);
+            token = await _parseJwt(bearer);
         } catch (e) {
             console.error(e);
             return res.status(403).json(`Invalid Authorization Bearer`);
@@ -86,7 +88,7 @@ export const ordercloud = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => 
 
         // create request
         const ocReq = req as OrderCloudApiRequest;
-        ocReq.bearer = jwt;
+        ocReq.bearer = token;
         ocReq.client = { accessToken: bearer }
 
         // create response
@@ -129,7 +131,7 @@ export const webhook = (fn: (WebhookApiRequest, WebhookApiResponse) => void | Pr
 
     _initClient();
 
-    return function(req: NextApiRequest, res: NextApiResponse) {
+    return async function(req: NextApiRequest, res: NextApiResponse) {
 
         // log body
         // console.log('Header:');
@@ -150,9 +152,9 @@ export const webhook = (fn: (WebhookApiRequest, WebhookApiResponse) => void | Pr
             }
         }
 
-        let jwt : DecodedToken = null;
+        let token : DecodedToken = null;
         try {
-            jwt = _parseJwt(req.body?.UserToken);
+            token = await _parseJwt(req.body?.UserToken);
         } catch (e) {
             console.error(e);
             return res.status(400).send(`Invalid Authorization Bearer`);
@@ -166,7 +168,7 @@ export const webhook = (fn: (WebhookApiRequest, WebhookApiResponse) => void | Pr
             ocReq.webhook = { path: b.Route, params: b.RouteParams, verb: b.Verb, timestamp: t, logId: b.LogID };
             ocReq.payload = b.Request?.Body;
             ocReq.configData = b.ConfigData;
-            ocReq.bearer = _parseJwt(b.UserToken);
+            ocReq.bearer = token;
             ocReq.client = { accessToken: b.UserToken };
         } else {
             return res.status(400).send('Webhook Body Missing');

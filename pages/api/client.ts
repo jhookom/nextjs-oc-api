@@ -1,12 +1,9 @@
-import { OrderCloudApiRequest, OrderCloudApiResponse, ordercloud } from '../../lib/oc-catalyst'
+import { OrderCloudApiRequest, OrderCloudApiResponse, ordercloud } from '../../lib/oc-catalyst-next'
 import { Auth, Me } from 'ordercloud-javascript-sdk'
 
 // sample client request
 const handler = async (req: OrderCloudApiRequest, res: OrderCloudApiResponse) => {
-    const requestTime = new Date().getTime();
-
-    console.log(req.client);
-
+    
     try {
         const me = await Me.Get(req.client);
 
