@@ -3,31 +3,37 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import jwkToPem from 'jwk-to-pem'
+import NodeCache from 'node-cache'
 
-
-const environment_webhook_key = 'OC_WEBHOOK_KEY';
-const environment_api_url = 'OC_API_URL';
-const environment_api_version = 'OC_API_VERSION';
-const environment_api_client = 'OC_CLIENT_ID';
-
-const webhook_header = 'x-oc-hash';
-
-
-// initialize the OrderCloud client for API request handling
-function _initClient() {
-    const config = Configuration.Get();
-    Configuration.Set({
-        baseApiUrl: _ocApiUrl(),
-        apiVersion: process.env[environment_api_version] || config.apiVersion,
-        clientID: config.clientID || process.env[environment_api_client],
-    });
-    console.log(`Initializing Client: ${JSON.stringify(Configuration.Get())}`);
-
-
+// environment variables
+export const oc_env_vars = {
+    webhook_key: 'OC_WEBHOOK_KEY',
+    api_url: 'OC_API_URL',
+    api_version: 'OC_API_VERSION',
+    api_client: 'OC_CLIENT_ID',
 }
 
+export const webhook_header = 'x-oc-hash';
+
+// initialize the OrderCloud client for API request handling
+const jwk_cache = new NodeCache({
+    stdTTL: 60,
+    checkperiod: 120,
+    useClones: false,
+    maxKeys: 20
+});
+
+// instantiate the configuration for API calls based on the environment
+const config = Configuration.Get();
+Configuration.Set({
+    baseApiUrl: _ocApiUrl(),
+    apiVersion: process.env[oc_env_vars.api_version] || config.apiVersion,
+    clientID: config.clientID || process.env[oc_env_vars.api_client],
+});
+console.log(`Initializing Client: ${JSON.stringify(Configuration.Get())}`);
+
 function _ocApiUrl() : string {
-    return process.env[environment_api_url] || 'https://sandboxapi.ordercloud.io';
+    return process.env[oc_env_vars.api_url] || 'https://sandboxapi.ordercloud.io';
 }
 
 // helper functions
@@ -44,11 +50,17 @@ function _decodeBase64(str: string) {
 // helper functions
 async function _parseJwt(token: string): Promise<DecodedToken> {
     const decoded = jwt.decode(token, {complete: true});
+    const kid = decoded.header.kid;
 
     // todo add caching
-    const cert_resp = await fetch(`${_ocApiUrl()}/oauth/certs/${decoded.header.kid}`);
-    const cert = await cert_resp.json();
-    const pem = jwkToPem(cert);
+    let pem = jwk_cache.get(kid);
+    if (pem == undefined) {
+        const cert_resp = await fetch(`${_ocApiUrl()}/oauth/certs/${kid}`);
+        const cert = await cert_resp.json();
+        pem = jwkToPem(cert);
+        jwk_cache.set(kid, pem);
+        console.log(`Caching JWK for kid[${kid}]`);
+    }
 
     // will throw an exception if verification fails
     await jwt.verify(token, pem, { algorithms: ['RS256'], audience: _ocApiUrl() });
@@ -72,8 +84,6 @@ export declare type OrderCloudApiResponse<T = any> = NextApiResponse & {
  *
  */
 export const ordercloud = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => void | Promise<void>) => {
-
-    _initClient();
 
     return async function(req: NextApiRequest, res: NextApiResponse) {
 
@@ -133,18 +143,10 @@ export declare type WebhookApiResponse<T = any> = OrderCloudApiResponse & {
  */
 export const webhook = (fn: (WebhookApiRequest, WebhookApiResponse) => void | Promise<void>) => {
 
-    _initClient();
-
     return async function(req: NextApiRequest, res: NextApiResponse) {
 
-        // log body
-        // console.log('Header:');
-        // console.log(JSON.stringify(req.headers, null, 1));
-        // console.log('Body:');
-        // console.log(JSON.stringify(req.body, null, 1));
-
         // validate webhook if environment variable set
-        const hashkey = process.env[environment_webhook_key];
+        const hashkey = process.env[oc_env_vars.webhook_key];
         if (!!hashkey) {
             const sent = Array.isArray(req.headers[webhook_header]) ? req.headers[webhook_header][0] : req.headers[webhook_header];
             if (!!sent) {
