@@ -23,7 +23,7 @@ const handler = async (req: IntegrationEventApiRequest, res: IntegrationEventApi
     }
     
 
-    res.status(200).send('Done');
+    return res.status(200).send('Done');
 }
 
 export default integrationEvent(handler);
