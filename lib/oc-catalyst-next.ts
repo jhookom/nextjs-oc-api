@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken'
 import jwkToPem from 'jwk-to-pem'
 import NodeCache from 'node-cache'
 import axios from 'axios'
+import getRawBody from 'raw-body'
 
 // environment variables
 export const oc_env_vars = {
@@ -109,6 +110,7 @@ export const ordercloud = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => 
             if (!!sent) {
                 // not ideal to re-stringify the json body vs using the raw (https://github.com/vercel/next.js/discussions/13405)
                 const hash = crypto.createHmac('sha256', hashkey).update(JSON.stringify(req.body)).digest('base64');
+                console.log(`Hash[${hash}] Sent[${sent}]`);
                 if (hash != sent) return res.status(403).send(`Header '${hash_header} is Not Valid`);
             } else {
                 return res.status(401).send(`Header '${hash_header}' Required`);
