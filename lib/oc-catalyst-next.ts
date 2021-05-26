@@ -152,7 +152,7 @@ export declare type WebhookApiResponse<T = any> = OrderCloudApiResponse & {
     proceed: (proc: boolean, sendBody?: T) => void
 }
 
-export const rawBody = async (req: NextApiRequest) {
+export const rawBody = async (req: NextApiRequest) => {
     let buffer = '';
     req.on('data', (chunk) => {
         buffer += chunk;
