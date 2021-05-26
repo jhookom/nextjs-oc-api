@@ -5,7 +5,7 @@ import getRawBody from 'raw-body'
 
 export const config = {
     api: {
-        bodyParser: true,
+        bodyParser: false,
     },
 }
 
