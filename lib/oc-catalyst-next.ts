@@ -251,6 +251,8 @@ export const integrationEvent = (fn: (IntegrationEventApiRequest, IntegrationEve
                 } else {
                     let buffer = await getRawBody(req);
                     body = buffer.toString();
+                    console.log(body);
+                    req.body = JSON.parse(body);
                 }
                 const hash = crypto.createHmac('sha256', hashkey).update(body).digest('base64');
                 if (hash != sent) return res.status(403).send(`Header '${hash_header} is Not Valid`);

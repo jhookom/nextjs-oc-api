@@ -16,7 +16,7 @@ const handler = async (req: IntegrationEventApiRequest, res: IntegrationEventApi
 
     console.log('=================');
     if (req.body) {
-        console.log(JSON.stringify(req.body, null, 1));
+        console.log(JSON.stringify(req.body));
     }
 
     return res.status(200).send('Done');
