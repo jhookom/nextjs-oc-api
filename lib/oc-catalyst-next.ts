@@ -103,28 +103,6 @@ export const ordercloud = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => 
 
     return async function(req: NextApiRequest, res: NextApiResponse) {
 
-        // validate webhook if environment variable set
-        const hashkey = process.env[oc_env_vars.hash_key];
-        if (!!hashkey) {
-            const sent = Array.isArray(req.headers[hash_header]) ? req.headers[hash_header][0] : req.headers[hash_header];
-            if (!!sent) {
-                // not ideal to re-stringify the json body vs using the raw (https://github.com/vercel/next.js/discussions/13405)
-                let body = '';
-                if (req.body) {
-                    body = JSON.stringify(req.body);
-                } else {
-                    let buffer = await getRawBody(req);
-                    body = buffer.toString();
-                    console.log(body);
-                }
-                const hash = crypto.createHmac('sha256', hashkey).update(body).digest('base64');
-                console.log(`Hash[${hash}] Sent[${sent}]`);
-                if (hash != sent) return res.status(403).send(`Header '${hash_header} is Not Valid`);
-            } else {
-                return res.status(401).send(`Header '${hash_header}' Required`);
-            }
-        }
-
         // validate bearer
         if (!!!req.headers.authorization) return res.status(403).send(`Authorization Bearer Required`);
 
@@ -245,4 +223,81 @@ export const webhook = (fn: (WebhookApiRequest, WebhookApiResponse) => void | Pr
     }
 }
 
+export declare type IntegrationEventApiRequest<T = any> = OrderCloudApiRequest & {
+    configData: any,
+}
+
+export declare type IntegrationEventApiResponse<T = any> = OrderCloudApiResponse & {
+    proceed: (proc: boolean, sendBody?: T) => void
+}
+
+/*
+ * Helper for handling Webhook API requests from OC
+ *
+ */
+export const integrationEvent = (fn: (IntegrationEventApiRequest, IntegrationEventApiResponse) => void | Promise<void>) => {
+
+    return async function(req: NextApiRequest, res: NextApiResponse) {
+
+        // validate webhook if environment variable set
+        const hashkey = process.env[oc_env_vars.hash_key];
+        if (!!hashkey) {
+            const sent = Array.isArray(req.headers[hash_header]) ? req.headers[hash_header][0] : req.headers[hash_header];
+            if (!!sent) {
+                // not ideal to re-stringify the json body vs using the raw (https://github.com/vercel/next.js/discussions/13405)
+                let body = '';
+                if (req.body) {
+                    body = JSON.stringify(req.body);
+                } else {
+                    let buffer = await getRawBody(req);
+                    body = buffer.toString();
+                }
+                const hash = crypto.createHmac('sha256', hashkey).update(body).digest('base64');
+                if (hash != sent) return res.status(403).send(`Header '${hash_header} is Not Valid`);
+            } else {
+                return res.status(401).send(`Header '${hash_header}' Required`);
+            }
+        }
+
+        // let token : DecodedToken = null;
+        // try {
+        //     token = await _parseJwt(req.body?.UserToken);
+        // } catch (e) {
+        //     console.error(e);
+        //     return res.status(400).send(`Invalid Authorization Bearer`);
+        // }
+
+        // create request
+        const ocReq = req as IntegrationEventApiRequest;
+        // if (!!req.body) {
+        //     const b = req.body;
+        //     const t = _dateFromISO8601(b.Date);
+        //     ocReq.webhook = { path: b.Route, params: b.RouteParams, verb: b.Verb, timestamp: t, logId: b.LogID };
+        //     ocReq.payload = b.Request?.Body;
+        //     ocReq.configData = b.ConfigData;
+        //     ocReq.bearer = token;
+        //     ocReq.client = { accessToken: b.UserToken };
+        // } else {
+        //     return res.status(400).send('Webhook Body Missing');
+        // }
+
+        // create response
+        const ocRes = res as IntegrationEventApiResponse;
+        ocRes.proceed = (p, b?) => {
+            ocRes.send({ proceed: p, body: b });
+        }
+        
+        try {
+            return fn(ocReq, ocRes);
+        } catch (e) {
+            console.error(e)
+            if (e instanceof OrderCloudError) {
+                const oe: OrderCloudError = e;
+                return res.status(500).send(oe.errors);
+            } else {
+                return res.status(500).json({ name: e.name, message: e.message });
+            }
+        }
+    }
+}
 
