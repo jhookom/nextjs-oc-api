@@ -3,7 +3,7 @@ import { Auth, Me } from 'ordercloud-javascript-sdk'
 
 export const config = {
     api: {
-        bodyParser: true,
+        bodyParser: false,
     },
 }
 
@@ -14,6 +14,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     console.log('=================');
     console.log(req.body);
+
+    
 
     res.status(200).send('Done');
 }
