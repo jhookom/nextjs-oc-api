@@ -11,8 +11,10 @@ export const config = {
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const { event } = req.query;
     console.log(`Event ${(event as string[]).join[', ']}`);
-    console.log(req.rawHeaders);
+    console.log(JSON.stringify(req.headers));
     console.log(req.body);
+
+    res.status(200).send('Done');
 }
 
 export default handler;
