@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import jwkToPem from 'jwk-to-pem'
 import NodeCache from 'node-cache'
+import axios from 'axios'
 
 // environment variables
 export const oc_env_vars = {
@@ -15,12 +16,26 @@ export const oc_env_vars = {
 
 export const webhook_header = 'x-oc-hash';
 
+//
+// INITIALIZE
+//
+ 
+axios.interceptors.request.use(c => {
+    c['ts'] = new Date().getTime();
+    return c;
+});
+
+axios.interceptors.response.use(r => {
+    console.log(`${r.config.url} - ${new Date().getTime() - r.config['ts']}ms`);
+    return r;
+})
+
 // initialize the OrderCloud client for API request handling
 const jwk_cache = new NodeCache({
-    stdTTL: 60,
-    checkperiod: 120,
+    stdTTL: 120,
+    checkperiod: 240,
     useClones: false,
-    maxKeys: 20
+    maxKeys: 5
 });
 
 // instantiate the configuration for API calls based on the environment
@@ -31,6 +46,11 @@ Configuration.Set({
     clientID: config.clientID || process.env[oc_env_vars.api_client],
 });
 console.log(`Initializing Client: ${JSON.stringify(Configuration.Get())}`);
+
+
+//
+// METHODS
+//
 
 function _ocApiUrl() : string {
     return process.env[oc_env_vars.api_url] || 'https://sandboxapi.ordercloud.io';
@@ -43,16 +63,11 @@ function _dateFromISO8601(isostr: string) {
 }
 
 // helper functions
-function _decodeBase64(str: string) {
-  return Buffer.from(str, "base64").toString("binary");
-}
-
-// helper functions
 async function _parseJwt(token: string): Promise<DecodedToken> {
     const decoded = jwt.decode(token, {complete: true});
     const kid = decoded.header.kid;
 
-    // todo add caching
+    // check cache, or lookup and create a PEM for the kid header
     let pem = jwk_cache.get(kid);
     if (pem == undefined) {
         const cert_resp = await fetch(`${_ocApiUrl()}/oauth/certs/${kid}`);
@@ -96,8 +111,8 @@ export const ordercloud = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => 
         try {
             token = await _parseJwt(bearer);
         } catch (e) {
-            // console.error(e);
-            return res.status(403).json(`Invalid Authorization Bearer`);
+            console.error(e);
+            return res.status(403).send(`Invalid Authorization Bearer`);
         }
 
         // create request
