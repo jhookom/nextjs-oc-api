@@ -8,13 +8,13 @@ import axios from 'axios'
 
 // environment variables
 export const oc_env_vars = {
-    webhook_key: 'OC_WEBHOOK_KEY',
+    hash_key: 'OC_HASH_KEY',
     api_url: 'OC_API_URL',
     api_version: 'OC_API_VERSION',
     api_client: 'OC_CLIENT_ID',
 }
 
-export const webhook_header = 'x-oc-hash';
+export const hash_header = 'x-oc-hash';
 
 //
 // INITIALIZE
@@ -102,6 +102,19 @@ export const ordercloud = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => 
 
     return async function(req: NextApiRequest, res: NextApiResponse) {
 
+        // validate webhook if environment variable set
+        const hashkey = process.env[oc_env_vars.hash_key];
+        if (!!hashkey) {
+            const sent = Array.isArray(req.headers[hash_header]) ? req.headers[hash_header][0] : req.headers[hash_header];
+            if (!!sent) {
+                // not ideal to re-stringify the json body vs using the raw (https://github.com/vercel/next.js/discussions/13405)
+                const hash = crypto.createHmac('sha256', hashkey).update(JSON.stringify(req.body)).digest('base64');
+                if (hash != sent) return res.status(403).send(`Header '${hash_header} is Not Valid`);
+            } else {
+                return res.status(401).send(`Header '${hash_header}' Required`);
+            }
+        }
+
         // validate bearer
         if (!!!req.headers.authorization) return res.status(403).send(`Authorization Bearer Required`);
 
@@ -161,15 +174,15 @@ export const webhook = (fn: (WebhookApiRequest, WebhookApiResponse) => void | Pr
     return async function(req: NextApiRequest, res: NextApiResponse) {
 
         // validate webhook if environment variable set
-        const hashkey = process.env[oc_env_vars.webhook_key];
+        const hashkey = process.env[oc_env_vars.hash_key];
         if (!!hashkey) {
-            const sent = Array.isArray(req.headers[webhook_header]) ? req.headers[webhook_header][0] : req.headers[webhook_header];
+            const sent = Array.isArray(req.headers[hash_header]) ? req.headers[hash_header][0] : req.headers[hash_header];
             if (!!sent) {
                 // not ideal to re-stringify the json body vs using the raw (https://github.com/vercel/next.js/discussions/13405)
                 const hash = crypto.createHmac('sha256', hashkey).update(JSON.stringify(req.body)).digest('base64');
-                if (hash != sent) return res.status(403).send(`Header '${webhook_header} is Not Valid`);
+                if (hash != sent) return res.status(403).send(`Header '${hash_header} is Not Valid`);
             } else {
-                return res.status(401).send(`Header '${webhook_header}' Required`);
+                return res.status(401).send(`Header '${hash_header}' Required`);
             }
         }
 
@@ -214,3 +227,5 @@ export const webhook = (fn: (WebhookApiRequest, WebhookApiResponse) => void | Pr
         }
     }
 }
+
+
