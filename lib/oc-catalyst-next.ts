@@ -109,7 +109,15 @@ export const ordercloud = (fn: (OrderCloudApiRequest, OrderCloudApiResponse) => 
             const sent = Array.isArray(req.headers[hash_header]) ? req.headers[hash_header][0] : req.headers[hash_header];
             if (!!sent) {
                 // not ideal to re-stringify the json body vs using the raw (https://github.com/vercel/next.js/discussions/13405)
-                const hash = crypto.createHmac('sha256', hashkey).update(JSON.stringify(req.body)).digest('base64');
+                let body = '';
+                if (req.body) {
+                    body = JSON.stringify(req.body);
+                } else {
+                    let buffer = await getRawBody(req);
+                    body = buffer.toString();
+                    console.log(body);
+                }
+                const hash = crypto.createHmac('sha256', hashkey).update(body).digest('base64');
                 console.log(`Hash[${hash}] Sent[${sent}]`);
                 if (hash != sent) return res.status(403).send(`Header '${hash_header} is Not Valid`);
             } else {
@@ -181,7 +189,14 @@ export const webhook = (fn: (WebhookApiRequest, WebhookApiResponse) => void | Pr
             const sent = Array.isArray(req.headers[hash_header]) ? req.headers[hash_header][0] : req.headers[hash_header];
             if (!!sent) {
                 // not ideal to re-stringify the json body vs using the raw (https://github.com/vercel/next.js/discussions/13405)
-                const hash = crypto.createHmac('sha256', hashkey).update(JSON.stringify(req.body)).digest('base64');
+                let body = '';
+                if (req.body) {
+                    body = JSON.stringify(req.body);
+                } else {
+                    let buffer = await getRawBody(req);
+                    body = buffer.toString();
+                }
+                const hash = crypto.createHmac('sha256', hashkey).update(body).digest('base64');
                 if (hash != sent) return res.status(403).send(`Header '${hash_header} is Not Valid`);
             } else {
                 return res.status(401).send(`Header '${hash_header}' Required`);
