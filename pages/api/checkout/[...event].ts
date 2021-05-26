@@ -9,9 +9,10 @@ export const config = {
 
 // debugger
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-    const { event } = req.query;
-    console.log(`Event ${(event as string[]).join[', ']}`);
-    console.log(JSON.stringify(req.headers));
+    console.log(JSON.stringify(req.query, null, 1));
+    console.log(JSON.stringify(req.headers, null, 1));
+
+    console.log('=================');
     console.log(req.body);
 
     res.status(200).send('Done');
