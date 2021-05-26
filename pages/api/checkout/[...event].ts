@@ -11,8 +11,8 @@ export const config = {
 
 // debugger
 const handler = async (req: IntegrationEventApiRequest, res: IntegrationEventApiResponse) => {
-    console.log(JSON.stringify(req.query, null, 1));
-    console.log(JSON.stringify(req.headers, null, 1));
+    // console.log(JSON.stringify(req.query, null, 1));
+    // console.log(JSON.stringify(req.headers, null, 1));
 
     console.log('=================');
     if (req.body) {
