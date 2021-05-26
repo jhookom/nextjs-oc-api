@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Auth, Me } from 'ordercloud-javascript-sdk'
+import { rawBody } from '../../../lib/oc-catalyst-next';
 
 export const config = {
     api: {
@@ -13,8 +14,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     console.log(JSON.stringify(req.headers, null, 1));
 
     console.log('=================');
-    console.log(req.body);
-
+    if (req.body) {
+        console.log(JSON.stringify(req.body, null, 1));
+    } else {
+        console.log(rawBody(req));
+    }
     
 
     res.status(200).send('Done');

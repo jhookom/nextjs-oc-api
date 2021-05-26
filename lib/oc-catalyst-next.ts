@@ -152,6 +152,17 @@ export declare type WebhookApiResponse<T = any> = OrderCloudApiResponse & {
     proceed: (proc: boolean, sendBody?: T) => void
 }
 
+export const rawBody = async (req: NextApiRequest) {
+    let buffer = '';
+    req.on('data', (chunk) => {
+        buffer += chunk;
+    });
+
+    req.on('end', () => {
+        return Buffer.from(buffer).toString();
+    });
+}
+
 /*
  * Helper for handling Webhook API requests from OC
  *
