@@ -17,7 +17,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     if (req.body) {
         console.log(JSON.stringify(req.body, null, 1));
     } else {
-        console.log(await getRawBody(req));
+        let buffer = await getRawBody(req);
+        console.log(buffer.toString());
     }
     
 
