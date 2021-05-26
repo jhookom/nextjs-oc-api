@@ -17,11 +17,7 @@ const handler = async (req: IntegrationEventApiRequest, res: IntegrationEventApi
     console.log('=================');
     if (req.body) {
         console.log(JSON.stringify(req.body, null, 1));
-    } else {
-        let buffer = await getRawBody(req);
-        console.log(buffer.toString());
     }
-    
 
     return res.status(200).send('Done');
 }
